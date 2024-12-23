@@ -1,0 +1,71 @@
+version: '3'
+
+services:
+  nginx:
+    container_name: nginx
+    image: nginx:1.13
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - .docker/nginx/conf.d:/etc/nginx/conf.d
+#      - web-root:/var/www/html
+#      - certbot-etc:/etc/letsencrypt
+#      - certbot-var:/var/lib/letsencrypt
+    networks:
+      - app-network
+
+#  certbot:
+#    image: certbot/certbot
+#    depends_on:
+#      - nginx
+#    container_name: certbot
+#    volumes:
+#      - certbot-etc:/etc/letsencrypt
+#      - certbot-var:/var/lib/letsencrypt
+#      - web-root:/var/www/html
+#    command: certonly --webroot --webroot-path=/var/www/html --email pochta@gmail.com --agree-tos --no-eff-email --staging -d domen.ru -d www.domen.ru
+
+  mysql:
+    image: mysql:5.7.22
+    container_name: mysql
+    restart: always
+    ports:
+      - "3310:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+      MYSQL_DATABASE: "${DB_DATABASE}"
+      MYSQL_USER: "${MYSQL_USER}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - /mysql:/var/lib/mysql
+    networks:
+      - app-network
+
+  app:
+    container_name: simple-spring-boot-app
+    build:
+      context: ./
+      dockerfile: .docker/java/Dockerfile
+    environment:
+      - "DB_HOST=mysql"
+      - "SERVER_PORT=8080"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - nginx
+      - mysql
+    restart: no
+    networks:
+      - app-network
+
+#volumes:
+#  certbot-etc:
+#  certbot-var:
+#  web-root:
+
+networks:
+  app-network:
+    driver: bridge
